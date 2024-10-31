@@ -4,7 +4,7 @@ import numpy as np
 import glob
 import cv2
 import tqdm
-import ffmpeg
+import ffmpeg  # Make sure to use ffmpeg-python
 
 def write_frames_to_video(npz_dir, output_video, frame_shape, framerate=60, vcodec='libx264'):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
@@ -27,7 +27,12 @@ def write_frames_to_video(npz_dir, output_video, frame_shape, framerate=60, vcod
             event_frame[y, x] = np.where(p == 1, 255, 0)
 
         rgb_frame = cv2.cvtColor(event_frame, cv2.COLOR_GRAY2RGB)
-        process.stdin.write(rgb_frame.astype(np.uint8).tobytes())
+
+        try:
+            process.stdin.write(rgb_frame.astype(np.uint8).tobytes())
+        except BrokenPipeError:
+            print("Error: Broken pipe. FFmpeg may have encountered an issue.")
+            break
 
     process.stdin.close()
     process.wait()
