@@ -6,10 +6,28 @@ import cv2
 import tqdm
 import ffmpeg
 
-def write_frames_to_video(npz_dir, output_video, frame_shape, framerate=60, vcodec='libx264'):
+def get_frame_shape(npz_dir):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
-    height, width = frame_shape
+    if not npz_files:
+        raise ValueError("No .npz files found in the specified directory.")
+    
+    # Load the first .npz file to detect shape
+    sample_data = np.load(npz_files[0])
+    if 'x' in sample_data and 'y' in sample_data:
+        height = sample_data['y'].max() + 1
+        width = sample_data['x'].max() + 1
+    else:
+        raise ValueError("The .npz file does not contain 'x' and 'y' arrays for determining frame shape.")
+    
+    return height, width
 
+def write_frames_to_video(npz_dir, output_video, framerate=60, vcodec='libx264'):
+    npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
+    if not npz_files:
+        print("No .npz files found in directory.")
+        return
+
+    height, width = get_frame_shape(npz_dir)
     process = (
         ffmpeg
         .input('pipe:', format='rawvideo', pix_fmt='rgb24', s=f'{width}x{height}')
@@ -42,7 +60,6 @@ if __name__ == "__main__":
     parser.add_argument("--npz_dir", "-i", type=str, required=True, help="Directory containing .npz files")
     parser.add_argument("--output_video", "-o", type=str, required=True, help="Output mp4 file path")
     parser.add_argument("--framerate", "-f", type=int, default=60, help="Frame rate of the output video")
-    parser.add_argument("--frame_shape", "-s", type=int, nargs=2, required=True, help="Shape of the frames as (height, width)")
     args = parser.parse_args()
 
-    write_frames_to_video(args.npz_dir, args.output_video, tuple(args.frame_shape), framerate=args.framerate)
+    write_frames_to_video(args.npz_dir, args.output_video, framerate=args.framerate)
