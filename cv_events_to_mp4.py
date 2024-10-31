@@ -5,21 +5,7 @@ import glob
 import cv2
 import tqdm
 
-def get_frame_shape(npz_dir):
-    npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
-    if not npz_files:
-        raise ValueError(f"No .npz files found in the specified directory: {npz_dir}")
-
-    sample_data = np.load(npz_files[0])
-    if 'x' in sample_data and 'y' in sample_data:
-        height = sample_data['y'].max() + 1
-        width = sample_data['x'].max() + 1
-    else:
-        raise ValueError("The .npz file does not contain 'x' and 'y' arrays for determining frame shape.")
-
-    return height, width
-
-def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96)):
+def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), max_frames=None):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
         print(f"No .npz files found in directory: {npz_dir}")
@@ -27,23 +13,33 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96)):
 
     print(f"Detected {len(npz_files)} .npz files in directory: {npz_dir}")
 
-    # Initialize VideoWriter
-    out = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*'DIVX'), framerate, size)
+    out = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*'mp4v'), framerate, size)
+
+    frame_count = 0
 
     for npz_file in tqdm.tqdm(npz_files, desc="Processing frames"):
         data = np.load(npz_file)
-        event_frame = np.zeros((size[1], size[0]), dtype=np.uint8)
 
         if 'x' in data and 'y' in data and 'p' in data:
+            event_frame = np.zeros(size, dtype=np.uint8)
+
             x, y, p = data['x'], data['y'], data['p']
-            event_frame[y, x] = np.where(p == 1, 255, 0)
+            for i in range(len(x)):
+                if p[i] == 1:
+                    if 0 <= y[i] < size[1] and 0 <= x[i] < size[0]:
+                        event_frame[y[i], x[i]] = 255
 
-        rgb_frame = cv2.cvtColor(event_frame, cv2.COLOR_GRAY2RGB)
-        rgb_frame_resized = cv2.resize(rgb_frame, size)
+            rgb_frame = cv2.cvtColor(event_frame, cv2.COLOR_GRAY2RGB)
+            rgb_frame_resized = cv2.resize(rgb_frame, size)
 
-        out.write(rgb_frame_resized)
+            out.write(rgb_frame_resized)
+            frame_count += 1
+
+            if max_frames is not None and frame_count >= max_frames:
+                break
 
     out.release()
+    print(f"Video saved to {output_video} with {frame_count} frames.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert directory of .npz files to mp4")
@@ -51,6 +47,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_video", "-o", type=str, required=True, help="Output mp4 file path")
     parser.add_argument("--framerate", "-f", type=int, default=15, help="Frame rate of the output video")
     parser.add_argument("--size", "-s", type=int, nargs=2, default=(96, 96), help="Width and Height of the output video")
+    parser.add_argument("--max_frames", "-m", type=int, default=None, help="Maximum number of frames to write to the video")
     args = parser.parse_args()
 
-    write_frames_to_video(args.npz_dir, args.output_video, framerate=args.framerate, size=args.size)
+    write_frames_to_video(args.npz_dir, args.output_video, framerate=args.framerate, size=args.size, max_frames=args.max_frames)
