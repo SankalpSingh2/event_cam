@@ -4,7 +4,7 @@ import numpy as np
 import glob
 import cv2
 import tqdm
-import ffmpeg  # Make sure to use ffmpeg-python
+import ffmpeg
 
 def write_frames_to_video(npz_dir, output_video, frame_shape, framerate=60, vcodec='libx264'):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
@@ -12,10 +12,10 @@ def write_frames_to_video(npz_dir, output_video, frame_shape, framerate=60, vcod
 
     process = (
         ffmpeg
-            .input('pipe:', format='rawvideo', pix_fmt='rgb24', s=f'{width}x{height}')
-            .output(output_video, pix_fmt='yuv420p', vcodec=vcodec, r=framerate)
-            .overwrite_output()
-            .run_async(pipe_stdin=True)
+        .input('pipe:', format='rawvideo', pix_fmt='rgb24', s=f'{width}x{height}')
+        .output(output_video, pix_fmt='yuv420p', vcodec=vcodec, r=framerate)
+        .overwrite_output()
+        .run_async(pipe_stdin=True)
     )
 
     for npz_file in tqdm.tqdm(npz_files, desc="Processing frames"):
