@@ -6,26 +6,29 @@ import cv2
 import tqdm
 import ffmpeg
 
+
 def get_frame_shape(npz_dir):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
         raise ValueError(f"No .npz files found in the specified directory: {npz_dir}")
-    
+
     sample_data = np.load(npz_files[0])
     if 'x' in sample_data and 'y' in sample_data:
         height = sample_data['y'].max() + 1
         width = sample_data['x'].max() + 1
     else:
         raise ValueError("The .npz file does not contain 'x' and 'y' arrays for determining frame shape.")
-    
+
     return height, width
 
-def write_frames_to_video(npz_dir, output_video, framerate=60, vcodec='libx264'):
+
+def write_frames_to_video(output_video, framerate=60, vcodec='libx264'):
+    npz_dir = "~/event_camera/sanky/rpg_vid2e/acino_test/sreepranav_events_final_true1"
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
         print(f"No .npz files found in directory: {npz_dir}")
         return
-    
+
     print(f"Detected {len(npz_files)} .npz files in directory: {npz_dir}")
     height, width = get_frame_shape(npz_dir)
     process = (
@@ -54,6 +57,7 @@ def write_frames_to_video(npz_dir, output_video, framerate=60, vcodec='libx264')
 
     process.stdin.close()
     process.wait()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert directory of .npz files to mp4")
