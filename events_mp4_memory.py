@@ -9,9 +9,8 @@ import ffmpeg
 def get_frame_shape(npz_dir):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
-        raise ValueError("No .npz files found in the specified directory.")
+        raise ValueError(f"No .npz files found in the specified directory: {npz_dir}")
     
-    # Load the first .npz file to detect shape
     sample_data = np.load(npz_files[0])
     if 'x' in sample_data and 'y' in sample_data:
         height = sample_data['y'].max() + 1
@@ -24,9 +23,10 @@ def get_frame_shape(npz_dir):
 def write_frames_to_video(npz_dir, output_video, framerate=60, vcodec='libx264'):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
-        print("No .npz files found in directory.")
+        print(f"No .npz files found in directory: {npz_dir}")
         return
-
+    
+    print(f"Detected {len(npz_files)} .npz files in directory: {npz_dir}")
     height, width = get_frame_shape(npz_dir)
     process = (
         ffmpeg
