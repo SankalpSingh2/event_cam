@@ -41,7 +41,7 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
             rgb_frame_resized = cv2.resize(rgb_frame, size)
 
             # Confirm each frame is unique
-            print(f"Writing frame {frame_count}")
+            # print(f"Writing frame {frame_count}")
             out.write(rgb_frame_resized)
             frame_count += 1
 
@@ -53,7 +53,7 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
     # Speed up the video and save it to the output path
     clip = VideoFileClip(temp_video_path)
     final = clip.fx(vfx.speedx, 3)  # Adjust speed multiplier as needed
-    print(f"FPS after speedup: {final.fps}")
+    # print(f"FPS after speedup: {final.fps}")
     final.write_videofile(output_video, codec="libx264")
 
     print(f"Video saved to {output_video} with {frame_count} frames.")
