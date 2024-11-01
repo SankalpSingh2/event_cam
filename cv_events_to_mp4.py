@@ -34,7 +34,7 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
 
             out.write(rgb_frame_resized)
             frame_count += 1
-
+            # test
             if max_frames is not None and frame_count >= max_frames:
                 break
 
