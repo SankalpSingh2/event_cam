@@ -4,6 +4,8 @@ import numpy as np
 import glob
 import cv2
 import tqdm
+from moviepy.editor import VideoFileClip
+import moviepy.video.fx.all as vfx
 
 def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), max_frames=None):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
@@ -39,6 +41,11 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
                 break
 
     out.release()
+    clip = VideoFileClip(output_video)
+    final = clip.fx(vfx.speedx, 3)
+    print("fps after speedup: {}".format(final.fps))
+    final.write_videofile(output_video)
+
     print(f"Video saved to {output_video} with {frame_count} frames.")
 
 if __name__ == "__main__":
