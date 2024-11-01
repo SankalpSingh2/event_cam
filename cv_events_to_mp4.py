@@ -7,6 +7,8 @@ import tqdm
 from moviepy.editor import VideoFileClip
 import moviepy.video.fx.all as vfx
 
+import tempfile
+
 def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), max_frames=None):
     npz_files = sorted(glob.glob(os.path.join(npz_dir, "*.npz")))
     if not npz_files:
@@ -15,8 +17,11 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
 
     print(f"Detected {len(npz_files)} .npz files in directory: {npz_dir}")
 
-    # Open the VideoWriter with specified parameters
-    out = cv2.VideoWriter(output_video, cv2.VideoWriter_fourcc(*'mp4v'), framerate, size)
+    # Temporary output video for frame processing
+    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video:
+        temp_video_path = temp_video.name
+
+    out = cv2.VideoWriter(temp_video_path, cv2.VideoWriter_fourcc(*'mp4v'), framerate, size)
 
     frame_count = 0
 
@@ -24,7 +29,6 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
         data = np.load(npz_file)
 
         if 'x' in data and 'y' in data and 'p' in data:
-            # Initialize a new frame for each file
             event_frame = np.zeros(size, dtype=np.uint8)
 
             x, y, p = data['x'], data['y'], data['p']
@@ -33,26 +37,27 @@ def write_frames_to_video(npz_dir, output_video, framerate=15, size=(96, 96), ma
                     if 0 <= y[i] < size[1] and 0 <= x[i] < size[0]:
                         event_frame[y[i], x[i]] = 255
 
-            # Convert to RGB and resize the frame
             rgb_frame = cv2.cvtColor(event_frame, cv2.COLOR_GRAY2RGB)
             rgb_frame_resized = cv2.resize(rgb_frame, size)
 
-            # Write the frame to the video file
+            # Confirm each frame is unique
+            print(f"Writing frame {frame_count}")
             out.write(rgb_frame_resized)
             frame_count += 1
 
             if max_frames is not None and frame_count >= max_frames:
                 break
 
-    out.release()  # Release the VideoWriter
+    out.release()  # Ensure frames are saved before moviepy processing
 
-    # Now, apply speedup effect using moviepy
-    clip = VideoFileClip(output_video)
-    final = clip.fx(vfx.speedx, 3)
-    print("fps after speedup: {}".format(final.fps))
+    # Speed up the video and save it to the output path
+    clip = VideoFileClip(temp_video_path)
+    final = clip.fx(vfx.speedx, 3)  # Adjust speed multiplier as needed
+    print(f"FPS after speedup: {final.fps}")
     final.write_videofile(output_video, codec="libx264")
 
     print(f"Video saved to {output_video} with {frame_count} frames.")
+
 
 
 if __name__ == "__main__":
